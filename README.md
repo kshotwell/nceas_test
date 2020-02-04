@@ -5,7 +5,7 @@ This is a place to practice git and R and markdown
 
 Here is a list: 
 
-* papaya
+* papayas
 * oranges
 * plums
 * apples
