@@ -10,5 +10,6 @@ Here is a list:
 * avocados
 * apples
 * grapes
+* blueberries
 
 These are the fruits I like
