@@ -10,7 +10,7 @@ Here is a list:
 * avocados
 * apples
 * grapes
-* blueberries
+* raspberries
 
 These are the fruits I like
 I'm not sure I like blueberries
