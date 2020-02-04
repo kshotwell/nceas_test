@@ -7,7 +7,7 @@ Here is a list:
 
 * papayas
 * oranges
-* plums
+* avocados
 * apples
 * grapes
 * raspberries
