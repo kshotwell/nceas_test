@@ -8,3 +8,7 @@ Here is a list:
 * kiwis
 * oranges
 * avocados
+* apples
+* grapes
+
+These are the fruits I like
