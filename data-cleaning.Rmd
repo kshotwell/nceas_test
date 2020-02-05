@@ -9,6 +9,164 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Read in data
+```{r, warning = FALSE, message = FALSE}
+library(dplyr)
+library(tidyr)
+```
+Sometimes when you read in a package after you run base, then other parts of base are masked due to the same name in the new package that you loaded. if you do not want to see this then add in the warning = FALSE, message = FALSE in the setup
 
-## Make a plan
+sometimes if you have a problem function that is masked and not working they you can just call it explicity
+For example: stats::filter()
+And generally use package_name::function_name()
+
+# Read in data
+
+Usefule to build a roadmap for your rmarkdown document with simple outline headings of what you plan to do
+
+Reading in urls for windows machines will need a url wrapper with some more methods. 
+
+```{r}
+catch_original<-read.csv(url("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/df35b.302.1", method = "libcurl"), stringsAsFactors = FALSE)
+```
+
+# Make data tidy
+
+Remove the notes and all columns because we don't need them. That information should really be in the metadata somewhere. Also good clean coding with piping will be to move the application to a different line, but do the line break after the pipe, NOT before.
+Mutate allows to add columns or change existing columns, left side of expression is what you want to change or add, then = to change it to whatever.
+
+```{r}
+catch_clean<-catch_original %>% 
+  select(-All, -notesRegCode) %>% 
+  mutate(Chinook = ifelse(Chinook=="I",1,Chinook)) %>% 
+  mutate(Chinook = as.numeric(Chinook))
+
+head(catch_clean)
+#summary(catch_clean)
+
+```
+
+## Data QA
+
+Checking for NA values, just checks one columns
+Determine which values were converted to NA by as.numeric()
+
+```{r}
+i <- which(is.na(catch_clean$Chinook))
+catch_original[i,]
+```
+Found issue: "I" in the Chinook column should be a 1. Looked up the reason that there was a character setting for the Chinook column and found that there was an entry with an I instead of a 1 in line 401 of the original data frame. in above code chunk was trying to coerce Chinook to numeric using "mutate(Chinook = as.numeric(Chinook))" in the pipe. 
+
+In general have an expectation of the number of rows and columns in your data and what they should be, check domain, range of values, missing value codes. 
+
+Can also make a lookup table that you 
+
+## Convert to long format
+
+We want our data table to be in a long format. We are using pivot longer and or pivot wider, it's the same as melt and cast in plyr, gather and spread is a little more recent. Plyr isn't really supported any more, but it can be frustrating. pivot longer supports more of the column helper functions that you can use for selecting names. 
+
+Easier to sometimes just tell the pivot what to not pivot over, rather than typing out all the columns you want to keep. So in this case could type out all the salmon names with cols = c(), or just state which ones you don't want with cols = -c(). So this is to change the table from the wide format to a long format, essentially creating a pivot table. 
+
+```{r}
+catch_long<- catch_clean %>% 
+  pivot_longer(cols = -c(Region, Year), 
+               names_to = "species", 
+               values_to = "catch") %>% 
+  rename(catch_thousands = catch) %>% 
+  mutate(catch = catch_thousands * 1000) %>% 
+  select(-catch_thousands)
+
+
+head(catch_long)
+```
+
+and sometimes you want your data in wide format
+
+```{r}
+catch_wide<-catch_long %>% 
+  pivot_wider(names_from = "Year", 
+              values_from = "catch")
+head(catch_wide)
+```
+
+# Summarize
+
+Mean catch per region
+
+```{r}
+mean_region<-catch_long %>% 
+  group_by(Region,species) %>% 
+  summarise(mean_catch = mean(catch), 
+            n_obs = n())
+
+head(mean_region)
+```
+
+Filter for only one species
+
+```{r}
+sockeye_catch<-catch_long %>% 
+  filter(species=="Sockeye") %>% 
+  group_by(Year) %>% 
+  summarise(mean_catch = mean(catch)) %>% 
+  arrange(desc(mean_catch))
+
+max(sockeye_catch$mean_catch)
+head(sockeye_catch)
+```
+
+# Join to other data
+Want to get information from another table to get information on the region. This would be equivalent to a look-up table. 
+
+Read in the region defs tables
+
+```{r}
+region_defs <- read.csv(url("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/df35b.303.1",method = "libcurl"),stringsAsFactors = FALSE) %>% 
+  select(code, mgmtArea)
+
+head(region_defs)
+```
+
+```{r}
+catch_joined<- left_join(catch_long,region_defs, 
+                         by = c("Region"="code"))
+
+head(catch_joined)
+```
+
+Need to specify which columns you should join over, they don't need to be named the same. 
+
+Dummy df exercises to separate names and unity
+```{r}
+sites_df <- data.frame(site = c("HAW-101",
+                                "HAW-103",
+                                "OAH-320",
+                                "OAH-219",
+                                "MAI-039"),
+                       stringsAsFactors = FALSE)
+
+sites_df %>% 
+  separate(site, c("island", "site_number"), "-")
+
+```
+
+Unite
+
+```{r}
+dates_df <- data.frame(year = c("1930",
+                                "1930",
+                                "1930"),
+                       month = c("12",
+                                "12",
+                                "12"),
+                       day = c("14",
+                               "15",
+                               "16"),
+                       stringsAsFactors = FALSE)
+
+dates_df %>% 
+  unite(date, year, month, day, sep = "-")
+
+```
+
+If you want to do more with strings then use stringr package which also goes with the tidyverse. 
+
