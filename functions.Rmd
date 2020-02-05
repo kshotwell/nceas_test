@@ -14,6 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Load your librariey
 ```{r}
 library(roxygen2)
+
 ```
 
 
@@ -49,6 +50,8 @@ help files are saved in an rd format, and roxygen packages help you convert it s
 
 
 fahr_to_celsius <- function(fahr) {
+  #stopifnot(is.numeric(fahr))
+  #assertthat(is.numeric(fahr))
   celsius<-(fahr-32)*5/9
   return(celsius)
 }
