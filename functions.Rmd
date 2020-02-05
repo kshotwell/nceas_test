@@ -1,0 +1,16 @@
+---
+title: "functions"
+author: "Kalei Shotwell"
+date: "2/5/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+airtemps<- c(212,30.3,80,32,0)
+```
+
+
