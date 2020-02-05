@@ -3,8 +3,76 @@ title: "salmon_exercise"
 author: "Kalei Shotwell"
 date: "2/5/2020"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+## Salmon exercise on finding Bristol Bay escapement
+
+First add libraries
+```{r, warning = FALSE, message = FALSE}
+library(dplyr)
+library(tidyr)
+library(DT)
+```
+
+##Load the Data Set
+if you want to filter as two things together than you 
+
+```{r}
+goal<-read.csv(url("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/knb.92014.1", method = "libcurl"), stringsAsFactors = FALSE) 
+
+count<-read.csv(url("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3Af119a05b-bbe7-4aea-93c6-85434dcb1c5e", method = "libcurl"), stringsAsFactors = FALSE)
+
+```
+
+## Clean the Data Sets
+```{r}
+esc_goal<-goal %>% 
+  filter(Species=="Sockeye"&Region=="Bristol Bay") %>% #can also just use a comma here
+  mutate(Lower = as.integer,Initial.Year = as.integer(Initial.Year)) %>% 
+  mutate(Lower = as.integer(Lower)) %>% 
+  #select(Area, Species, Region, System, Lower, Upper, Type, Initial.Year)
+  select(-starts_with("X")) %>% 
+  rename(Location=System)
+head(esc_goal)
+summary(esc_goal)
+
+esc_count<-count %>% 
+  filter(Species=="Sockeye"&SASAP.Region=="Bristol Bay") %>% 
+  separate(sampleDate, c("Year", "Month", "Day"), "-") %>% 
+  mutate(Year = as.integer(Year))
+
+#Location %in% escapement_goals$Location
+head(esc_count)
+
+```
+
+
+## Clean the Data Sets
+```{r}
+esc_mean<-esc_count %>% 
+  group_by(Year, Location) %>% 
+  summarise(Total = sum(DailyCount)) %>% 
+  left_join(esc_goal, by = "Location")
+
+head(esc_mean)
+
+esc_join<-left_join(esc_mean,esc_goal, 
+                         by = Location)
+
+head(esc_join)
+```
+
+
+
+## Integrate the Data
+
+
+## Analyze the Data
+
+
