@@ -11,6 +11,12 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r}
+#Source relevant functions
+#you can use source inside a loop statement or within an apply statement to go through a directory of functions rather than one by one
+source('conversions.R')
+```
+
 ## Load your librariey
 ```{r}
 library(roxygen2)
