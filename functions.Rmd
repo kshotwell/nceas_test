@@ -85,5 +85,9 @@ namespace is a way to separate functions out and keep them from colliding with o
 mean in base is from stats names space, so full name of mean is 
 stats::mean, that is it's namespace
 
+sometimes having a function in the markdown files is a little overwhelming and possibly not helpful for the markdown file. 
+
+RMD files are somewhat front end to the audience. think about your audience in how you decide whether to use functions or markdown to show your code. 
+
 
 
