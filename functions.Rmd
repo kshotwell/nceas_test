@@ -3,14 +3,84 @@ title: "functions"
 author: "Kalei Shotwell"
 date: "2/5/2020"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+## Load your librariey
+```{r}
+library(roxygen2)
+```
+
+
 ```{r}
 airtemps<- c(212,30.3,80,32,0)
+cel1<-(airtemps[1]-32)*5/9
+cel2<-(airtemps[2]-32)*5/9
+cel3<-(airtemps[3]-32)*5/9
+cel4<-(airtemps[4]-32)*5/9
+cel5<-(airtemps[5]-32)*5/9
+
 ```
+
+## Define conversions functions
+
+First, F to C: documentation in functions can be made with the comment sign (#) with an apostrophe after it (')
+
+param is where the arguements are in the help section
+return is the value section in the help section
+help files are saved in an rd format, and roxygen packages help you convert it so something like rstudio can figure out what it is, keywords is used for classifying the r package in the heirarchy of help
+
+```{r}
+#' Convert degrees Fahrenheit to Celsius
+#'
+#' We use the simple formulat for temperature conversiton to convert. 
+#' One can find this in any intro physics book.
+#' @param fahr the temperature to be converted in degrees Fahrenheit
+#' @return the temperature converted to degrees Celsius
+#' @keywords conversion
+#' @examples
+#' fahr_to_celsius(32)
+#' fahr_to_celsius(c(212,100,32))
+
+
+fahr_to_celsius <- function(fahr) {
+  celsius<-(fahr-32)*5/9
+  return(celsius)
+}
+#ask about source files
+
+```
+
+```{r}
+celsius6<-fahr_to_celsius(airtemps[1])
+celsius6==cel1
+
+celsius<-fahr_to_celsius(airtemps)
+celsius
+
+```
+
+Second, C to F: 
+```{r}
+cel_to_fahr <- function(cel) {
+  fahrenheit<-(cel*9/5)+32
+  return(fahrenheit)
+}
+
+fahrenheit<-cel_to_fahr(celsius)
+fahrenheit==airtemps
+
+```
+
+namespace is a way to separate functions out and keep them from colliding with one another. 
+
+mean in base is from stats names space, so full name of mean is 
+stats::mean, that is it's namespace
+
 
 
