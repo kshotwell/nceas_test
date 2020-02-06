@@ -20,7 +20,7 @@ source('conversions.R')
 ## Load your librariey
 ```{r}
 library(roxygen2)
-
+library(mytools)
 ```
 
 
@@ -95,5 +95,8 @@ sometimes having a function in the markdown files is a little overwhelming and p
 
 RMD files are somewhat front end to the audience. think about your audience in how you decide whether to use functions or markdown to show your code. 
 
+```{r}
+environment_info("Works from functions test")
+```
 
 
