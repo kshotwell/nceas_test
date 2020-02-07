@@ -42,4 +42,4 @@ vignettes/*.pdf
 *.csv
 
 # shapefile data directory
-shapefile_demo_data
+shapefile_demo_data/
