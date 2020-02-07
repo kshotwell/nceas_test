@@ -1,0 +1,200 @@
+---
+title: "spatial analysis"
+author: "Kalei Shotwell"
+date: "2/7/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(sf)
+library(dplyr)
+library(ggplot2)
+library(scales)
+library(leaflet)
+library(ggmap)
+
+```
+
+## Check the data
+```{r}
+ak_regions <- read_sf("shapefile_demo_data/ak_regions_simp.shp")
+plot(ak_regions)
+st_crs(ak_regions) # prints the projection you are in
+
+```
+
+## Transform the data
+Useful reference systems are WGS84: 4326, AK albers: 3338, psuedo mercator (google maps): 3857
+sf objects work really well with the tidyverse functions
+
+```{r}
+ak_regions_3338<-ak_regions %>% 
+  st_transform(crs=3338)
+
+plot(ak_regions_3338) # looks better
+nrow(ak_regions_3338) # returns number of rows in dataframe
+
+ak_regions_3338 %>% 
+  select(region)
+```
+
+## read in population csv
+```{r}
+pop<-read.csv("shapefile_demo_data/alaska_population.csv", stringsAsFactors = F)
+
+class(pop)
+
+```
+Change regular data frame csv to sf object
+
+```{r}
+pop_4326<-st_as_sf(pop,
+                   coords = c('lng','lat'),
+                   crs = 4326,
+                   remove = F
+                   )
+
+#need to pass the dataframe and then give it where the coordinates are, and the unprojected data that it is. Use remove = F to keep the lat and long data in the dataframe rather than moving it to the geometrty sticky column. if you don't put in the crs part, then it will still draw but it will not 
+class(pop_4326)
+
+```
+## JOin the data
+
+```{r}
+
+pop_3338<- pop_4326 %>% 
+    st_transform(3338)
+  
+pop_joined <- st_join(pop_3338, ak_regions_3338, join = st_within)
+head (pop_joined)
+
+```
+
+```{r}
+pop_region<- pop_joined %>% 
+  group_by(region) %>% 
+  summarise(total_pop = sum(population))
+
+head(pop_region)
+plot (pop_region)
+
+pop_region<- pop_joined %>% 
+  as.data.frame() %>% 
+  group_by(region) %>% 
+  summarise(total_pop = sum(population))
+
+head(pop_region)
+
+```
+pop by regions
+```{r}
+pop_region_3338<- left_join(ak_regions_3338,pop_region)# need spatial data on left side to keeep the geometry column around
+
+plot(pop_region_3338)
+
+```
+pop by management area
+```{r}
+pop_mgmt_3338<-pop_region_3338 %>% 
+  group_by(mgmt_area) %>% 
+  summarise(total_pop = sum(total_pop))
+head(pop_mgmt_3338)
+plot(pop_mgmt_3338["total_pop"])
+
+pop_mgmt_3338<-pop_region_3338 %>% 
+  group_by(mgmt_area) %>% 
+  summarise(total_pop = sum(total_pop), do_union=F)
+
+head(pop_mgmt_3338)
+plot(pop_mgmt_3338["total_pop"])
+
+```
+write out to file
+
+```{r}
+write_sf(pop_region_3338, "shapefile_demo_data/ak_regions_population.shp", 
+         delete_layer = T)#help say to delete_layer before writing, this will overright
+
+```
+
+## make a map
+
+```{r}
+rivers_3338<-read_sf("shapefile_demo_data/ak_rivers_simp.shp")
+```
+
+
+```{r}
+ggplot(pop_region_3338) +
+  geom_sf(mapping = aes(fill = total_pop)) +
+  geom_sf(data = rivers_3338, mapping = aes(size = StrOrder), color = "black")+
+  geom_sf(data = pop_3338, mapping = aes(), size = 0.5)+ # don't map the points to size because you have already mapped size in the previous geom
+  scale_size(range = c(0.01,0.2), guide = F)+ #resize and takes out legend
+  theme_bw() +
+  labs(fill = "Total Population") +
+  scale_fill_continuous(low = "khaki", 
+                        high =  "firebrick", 
+                        labels = scales::comma)
+
+#don't need to set the mapping axis in the gg plot function call as we did yeseterday, helpful to put the mapping objects inthe geom call
+
+#colorbrewer
+#stat.columbia.edu/tzheng/files/Rcolor.pdf
+# need to put mapping in the geom call because ggplot will only take one mapping inthe main call and it would overwrite anything below it
+# can only map one aes to one variable and be able to scale and color them
+# can only have one scale fill per plot, one will over write the other, 
+```
+##Use ggmaps
+
+```{r}
+pop_3857<- pop_3338 %>% 
+  st_transform(crs = 3857)
+
+# need to grab a tile server that serves a region we are interested in
+# get stammen map box just define a box and returns the tile you are interested in
+
+# Code from course, if you want to use ggmap with your own spatial data, you have to use this, fixes the bounding box issue
+
+# Define a function to fix the bbox to be in EPSG:3857
+# See https://github.com/dkahle/ggmap/issues/160#issuecomment-397055208
+ggmap_bbox_to_3857 <- function(map) {
+  if (!inherits(map, "ggmap")) stop("map must be a ggmap object")
+  # Extract the bounding box (in lat/lon) from the ggmap to a numeric vector, 
+  # and set the names to what sf::st_bbox expects:
+  map_bbox <- setNames(unlist(attr(map, "bb")), 
+                       c("ymin", "xmin", "ymax", "xmax"))
+  
+  # Coonvert the bbox to an sf polygon, transform it to 3857, 
+  # and convert back to a bbox (convoluted, but it works)
+  bbox_3857 <- st_bbox(st_transform(st_as_sfc(st_bbox(map_bbox, crs = 4326)), 3857))
+  
+  # Overwrite the bbox of the ggmap object with the transformed coordinates 
+  attr(map, "bb")$ll.lat <- bbox_3857["ymin"]
+  attr(map, "bb")$ll.lon <- bbox_3857["xmin"]
+  attr(map, "bb")$ur.lat <- bbox_3857["ymax"]
+  attr(map, "bb")$ur.lon <- bbox_3857["xmax"]
+  map
+}
+
+```
+
+```{r}
+bbox <- c(-170, 52, -130, 64)   # This is roughly southern Alaska
+ak_map <- get_stamenmap(bbox, zoom = 4)
+ak_map_3857 <- ggmap_bbox_to_3857(ak_map)
+
+```
+
+```{r}
+ggmap(ak_map_3857)+
+  geom_sf(data=pop_3857, aes (color = population), inherit.aes = F)+
+  scale_color_continuous(low="khaki", high="firebrick", labels = comma)
+
+```
+
